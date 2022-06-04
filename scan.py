@@ -2,10 +2,16 @@ from scapy.all import *
 import sys
 
 """
-ip - an ip in the network
-target_list - the pair of (ip, mac) of all hosts in the network
+@args none, so by default the machine's IP will be used for scan or one can specify 
+@returns target_list - the pair of (ip, mac) of all hosts in the network
+	target_list[0][0] = ip address of the first machine 
+	target_list[0][1] = mac address of the first machine
 """
-def scan(ip):
+def scan(ip=None):
+
+	if ip is None:
+		ip = get_if_addr(conf.iface) # doesn really work with the ip of the host yet xd
+
 	# create an ARP packet
 	arp = Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst=ip)
 

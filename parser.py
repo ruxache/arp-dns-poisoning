@@ -1,4 +1,5 @@
 import argparse, os, sys, scan
+import arp
 
 parser = argparse.ArgumentParser(description='Tool for ARP Spoofing/Poisoning and DNS Spoofing/Poisoning')
 
@@ -11,12 +12,6 @@ parser.add_argument('-A', '--ARP', type=bool, metavar='', required=False, nargs=
 # choose DNS
 parser.add_argument('-D', '--DNS', type=bool, metavar='', required=False, nargs='+', help='True - DNS attack will be performed, False - no DNS attack')
 
-# choose to spoof
-parser.add_argument('-s', '--spoof', type=bool, metavar='', required=False, nargs='+', help='Spoofing attack for chosen protocol')
-
-# choose to poison
-parser.add_argument('-p', '--poison', type=bool, metavar='', required=False, nargs='+', help='Poisoning attack for chosen protocol')
-
 args = parser.parse_args()
 
 
@@ -28,11 +23,10 @@ else:
 
 # TODO: write those functions
 
-if args.ARP and args.spoof:
+if args.ARP:
 	print("youve been spoofed")
+	arp.posion()
 	# ARP spoof function here
-# elif args.ARP and args.poison:
-	# ARP poisoning function here
 # elif args.DNS and args.spoof:
 	# DNS spoof function here
 # elif args.DNS and args.poison:

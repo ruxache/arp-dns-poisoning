@@ -1,33 +1,19 @@
 import argparse, os, sys, scan
-import arp
+#simport arp
 
-parser = argparse.ArgumentParser(description='Tool for ARP Spoofing/Poisoning and DNS Spoofing/Poisoning')
+def import_args():
+	parser = argparse.ArgumentParser(description='Tool for ARP Spoofing/Poisoning and DNS Spoofing/Poisoning')
 
-# specify which hosts are the victims. if not specified, all machines in the network will be poisoned
-parser.add_argument('-v', '--victimIP', type=str, metavar='', required=False, nargs='+', help='List of IP addresses') 
+	# specify which hosts are the victims. if not specified, all machines in the network will be poisoned
+	parser.add_argument('-v', '--victimIP', type=str, metavar='', required=False, nargs='+', help='List of IP addresses') 
 
-# choose ARP
-parser.add_argument('-A', '--ARP', type=bool, metavar='', required=False, nargs='+', help='True - ARP attack will be performed, False - no ARP attack') 
+	# choose ARP, packets will be intercepted by default
+	parser.add_argument('-A', '--ARP', type=bool, metavar='', help='Choose to perform ARP poisoning')
 
-# choose DNS
-parser.add_argument('-D', '--DNS', type=bool, metavar='', required=False, nargs='+', help='True - DNS attack will be performed, False - no DNS attack')
+	# parser.add_argument('-A', '--ARP', type=bool, metavar='', action='store_true', help='True - ARP attack will be performed, False - no ARP attack')  action='store_true'
 
-args = parser.parse_args()
+	# choose DNS
+	# the arguments will be the websites that will be spoofed
+	parser.add_argument('-D', '--DNS', type=str, metavar='', required=False, nargs='+', help='True - DNS attack will be performed, False - no DNS attack')
 
-
-result = scan.scan("10.0.3.14/24")
-if not result:
-	print("No hosts have been scanned in this local network. Configure some and try again.")
-else:
-	print(result)
-
-# TODO: write those functions
-
-if args.ARP:
-	print("youve been spoofed")
-	arp.posion()
-	# ARP spoof function here
-# elif args.DNS and args.spoof:
-	# DNS spoof function here
-# elif args.DNS and args.poison:
-	# DNS poisoning here
+	return parser.parse_args()

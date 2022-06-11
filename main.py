@@ -1,7 +1,7 @@
 # some ideas for user dialogues
 import parser
 import scan
-import validators
+# import validators
 import arp
 from urllib.parse import urlparse
 
@@ -16,20 +16,29 @@ def is_valid_link(x):
         return False
 
 # scan the netowrk for hosts
-# result = scan.scan("10.0.3.14/16")
-# if not result:
-#	print("No hosts have been scanned in this local network. Configure some and try again.")
-# else:if is_valid_link(url):
-        #print("One URL was not correct. Please check: ", url)
-        #issue = True
-        # break
-#	print(result)
+interface = ' '
+hosts = ' '
 
-# TODO: write those functions
+try:
+    interface = scan.scanInterface()
+    if not interface:
+        raise Exception('interface')
+    hosts = scan.scanIP()
+    if not hosts:
+        print("balamuc")
+        raise Exception('hosts')
+except Exception:
+    print("There was an issue with the interface or the scanned hosts.")
+
+# print("No hosts have been scanned in this local network. Configure some and try again.")
+
 
 
 if args.ARP:
-    arp.posion()
+    interval = 10
+    print("arp your mom")
+
+    # arp.Poison(interface, hosts, interval).poison()
 elif args.DNS:
     websites = args.DNS
 

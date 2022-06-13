@@ -13,10 +13,10 @@ import scan
 # else
 # os.system("sysctl -w net.ipv4.ip_forward=0")
 
-interface = 'enp0s3'
-hosts = [["192.168.56.101", "08:00:27:b7:c4:af"], 
-        ["192.168.56.102", "08:00:27:cc:08:6f"]]
-interval = 2
+# interface = 'enp0s3'
+# hosts = [["192.168.56.101", "08:00:27:b7:c4:af"], 
+#         ["192.168.56.102", "08:00:27:cc:08:6f"]]
+# interval = 2
 
 class Poison:
 

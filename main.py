@@ -4,6 +4,7 @@ import scan
 # import validators
 import arp
 from urllib.parse import urlparse
+import sys
 
 args = parser.import_args()
 
@@ -15,30 +16,36 @@ def is_valid_link(x):
     except:
         return False
 
-# scan the netowrk for hosts
+# scan the network for hosts
 interface = ' '
 hosts = ' '
-
 try:
-    interface = scan.scanInterface()
+    interface = scan.interface()
     if not interface:
-        raise Exception('interface')
-    hosts = scan.scanIP()
-    if not hosts:
-        print("balamuc")
-        raise Exception('hosts')
+        raise Exception
 except Exception:
-    print("There was an issue with the interface or the scanned hosts.")
+    print("There was an issue with the interface.")
+    sys.exit()
 
-# print("No hosts have been scanned in this local network. Configure some and try again.")
-
-
-
+if interface:
+    try:
+        hosts = scan.ip(interface)
+        if not hosts:
+            raise Exception
+        else:
+            print("Successful scanning on the interface", interface)
+            print("------------------------------------------------------------------\n")
+            print("The following hosts are up and running:")
+            for host in hosts:
+                print("[*] Host with IP", host[0], "and MAC", host[1]) 
+    except Exception:
+        print("No hosts have been scanned in this interface. Configure some and try again.")
+        sys.exit()
 if args.ARP:
-    interval = 10
-    print("arp your mom")
+    interval = args.ARP
+    print("------------------------------------------------------------------\n")
+    arp.Poison(interface, hosts, interval).poison()
 
-    # arp.Poison(interface, hosts, interval).poison()
 elif args.DNS:
     websites = args.DNS
 

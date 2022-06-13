@@ -7,28 +7,55 @@ import sys
 	target_list[0][0] = ip address of the first machine 
 	target_list[0][1] = mac address of the first machine
 """
-def scanIP(ip=None):
+def ip(iface):
 
-	if ip is None:
-		ip = get_if_addr(conf.iface) # doesn really work with the ip of the host yet xd
+	targets = []
 
-	# create an ARP packet
-	arp = Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst=ip)
+	def discover_on_interface(pckt):
+		
+		if IP in pckt:
 
-	# send packets and receive answers
-	answer_list = srp(arp, timeout=1, verbose=False)[0]
+			# check the source
+			sMAC = pckt[Ether].src
+			sIP = pckt[IP].src
+			add_target(sIP, sMAC)
 
-	target_list = []
-	for host in answer_list:
-		ip_address = host[1].psrc
-		mac_address = host[1].hwsrcs
-		target_list.append([ip_address, mac_address])
+			# check the destination
+			dMAC = pckt[Ether].dst
+			dIP = pckt[IP].dst
+			add_target(dIP, dMAC)
 
-	target_list.remove(get_if_addr())
+			
+		if ARP in pckt:
 
-	return target_list
+			# check the source
+			sMAC = pckt[Ether].hwsrc
+			sIP = pckt[IP].psrc
+			add_target(sIP, sMAC)
 
-def scanInterface():
+			if pckt[ARP].op == 1:
+
+				# check the destination
+				dMAC = pckt[Ether].hwsrc
+				dIP = pckt[IP].psrc
+				add_target(dIP, dMAC)
+
+	# updates the list of hosts. necessary to ensure there are no duplicates
+	def add_target(ip, mac):
+		host = [ip, mac]
+
+		# make sure we don't attack the attacker machine lol
+		if ip != get_if_addr(iface) and mac != get_if_hwaddr(iface):
+			if host not in targets:
+				targets.append(host)
+
+	sniff(iface=iface, prn=discover_on_interface, store=0, timeout=1)
+
+
+	return targets
+
+
+def interface():
 	interfaces =  get_if_list()
 
 	print("Pick one interface:")

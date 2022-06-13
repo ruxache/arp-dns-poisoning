@@ -41,11 +41,26 @@ def discover():
             else:
                 print("Successful scanning on the interface", interface)
                 spacing()
-                print("The following hosts are up and running:")
-                counter = 1
-                for host in hosts:
-                    print("[", counter, "] Host with IP", host[0], "and MAC", host[1]) 
-                    counter += 1
+                print("Do you want to poison all the hosts?")
+                answr = yes_no()
+
+                if answr == 0: # yes
+                    print("Poisoning all hosts on the interface", interface)
+                else: #no
+
+                    print("The following hosts are up and running. Pick the number of the host(s) you want to poison:")
+                    counter = 1
+                    for host in hosts:
+                        print("[", counter, "] Host with IP", host[0], "and MAC", host[1]) 
+                        counter += 1
+
+                    index = list(map(int, input().split()))
+
+                    temp = [hosts[i-1] for i in index]
+                    hosts = []
+                    hosts = temp.copy()
+
+
         except Exception:
             print("No hosts have been scanned in this interface. Configure some and try again.")
             sys.exit()
@@ -53,16 +68,29 @@ def discover():
     return interface, hosts
 
 
-def input_checker(val):
-    # 0 -> yes
-    # 1 -> no
-    # everything else -> 2 - error, introduce again
+def yes_no():
 
-    if val.lower() == 'yes' or val.lower == 'y':
-        return 0
-    elif val.lower() == 'no' or val.lower == 'n':
-        return 1
-    else: return 2
+    def input_checker(val):
+        # 0 -> yes
+        # 1 -> no
+        # everything else -> 2 - error, introduce again
+
+        if val.lower() == 'yes' or val.lower() == 'y':
+            return 0
+        elif val.lower() == 'no' or val.lower() == 'n':
+            return 1
+        else: return 2
+
+    answr = input()
+    answr = input_checker(answr)
+
+    while answr is 2:
+        answr = input("We didn't quite catch that. Yes or no? \n")
+        answr = input_checker(answr)
+
+    return answr
+
+
 
 interface, hosts = discover()
 
@@ -71,14 +99,9 @@ if args.ARP:
     spacing()
 
     # some threads around here i guess
-    answr = 2
-
-    answr = input("Want to do SSL strip on the victims while ARP poisoning them? Y/N \n")
-    answr = input_checker(answr)
-
-    while answr is 2:
-        answr = input("We didn't quite catch that. Yes or no? \n")
-        answr = input_checker(answr)
+    
+    print("Want to do SSL strip on the victims while ARP poisoning them? Y/N \n")
+    answr = yes_no()
 
     if answr is 0:
         ssl = ssl.SSLStrip()

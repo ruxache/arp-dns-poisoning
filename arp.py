@@ -7,12 +7,6 @@ import os
 from time import sleep
 import scan
 
-# if silent
-# print("Forwarding intercepted packets to oiriginal destination")
-# os.system("sysctl -w net.ipv4.ip_forward=1")
-# else
-# os.system("sysctl -w net.ipv4.ip_forward=0")
-
 # interface = 'enp0s3'
 # hosts = [["192.168.56.101", "08:00:27:b7:c4:af"], 
 #         ["192.168.56.102", "08:00:27:cc:08:6f"]]

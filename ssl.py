@@ -1,12 +1,13 @@
 import os
 
 class SSLStrip:
-	try:
-		def strip(self):
+	
+	def strip(self):
+		try:
 			print("Performing SSL strip now...")
 			os.system('sslstrip')
-	except KeyboardInterrupt:
-		print("Stopping SSL strip.")
+		except KeyboardInterrupt:
+			print("Stopping SSL strip.")
 
 if __name__ == '__main__':
     ssl = SSLStrip()

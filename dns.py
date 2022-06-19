@@ -23,6 +23,8 @@ class Poison:
         ])
 
     def reply(self, packet):
+        print("Beginning DNS poisoning.")
+    
         # Construct the DNS packet
         # Construct the Ethernet header by looking at the sniffed packet
         eth = Ether(

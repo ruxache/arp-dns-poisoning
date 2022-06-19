@@ -3,9 +3,8 @@ import arp, dns, ssl, scan, parser
 from urllib.parse import urlparse
 from time import sleep
 import ipaddress, socket
-sslRequested = False
 
-arpObject = ' '
+
 def is_valid_link(x):
     try:
         result = urlparse(x)
@@ -19,7 +18,6 @@ def is_valid_ip(x):
         return True
     except ValueError:
         return False
-
 
 def spacing():
     print("------------------------------------------------------------------\n")
@@ -99,22 +97,23 @@ def yes_no():
 
 
 def main():
-
+    args = parser.import_args()
+    
     try:
-        #if not args.help
-        args = parser.import_args()
+        if args.ARP and args.DNS and args.silent:
+            print("Oops! ARP is already included in DNS. DNS does not support silent mode. Please choose only one attack.")
+            sys.exit()
 
-        # try:
-        if args.ARP:
+        elif args.ARP and args.DNS:
+            print("Oops! ARP is already included in DNS. Please choose only one attack.")
+            sys.exit()
+
+        elif args.ARP:
+
             interval = args.ARP
 
-            spacing()
-
             interface, hosts = discover()
-
             spacing()
-
-            # some threads around here i guess
 
             print("Want to do SSL strip on the victims while ARP poisoning them? Y/N")
             answr = yes_no()
@@ -128,8 +127,6 @@ def main():
 
             spacing()
 
-            # if silent
-
             if args.silent:
                 print("Silent mode on. Forwarding intercepted packets to oiriginal destination")
                 os.system("sysctl -w net.ipv4.ip_forward=1")
@@ -138,9 +135,7 @@ def main():
                 os.system("sysctl -w net.ipv4.ip_forward=0")
 
             spacing()
-
             print("Begin ARP poisoning")
-
             spacing()
 
             # arpAttack = arp.Poison(interface, hosts, interval)
@@ -175,9 +170,6 @@ def main():
             #     sslThread = threading.Thread(target=ssl.strip, name="SSL Strip")
             #     sslThread.start()
 
-
-
-
             arpAttack = arp.Poison(interface, hosts, interval)
             arpProcess = multiprocessing.Process(
                 target=arpAttack.poison, name="ARP Poison")
@@ -189,6 +181,10 @@ def main():
                     target=sslAttack.strip, name="SSL Strip")
                 sslProcess.start()
                 print("SSL started")
+
+        elif args.silent and args.DNS:
+            print("Oops! DNS poisoning does not support silent mode. The packets will not be forwarded.")
+            sys.exit()
 
         elif args.DNS:
             server = args.DNS
@@ -213,9 +209,7 @@ def main():
                 sys.exit()
 
             spacing()
-
             interface, hosts = discover()
-
             spacing()
 
 
@@ -233,27 +227,25 @@ def main():
             dnsProcess = multiprocessing.Process(target=dns.reply, args=(packet,), name="DNS Poison")
             dnsProcess.start()
 
-
-        elif args.silent and args.DNS:
-            print("Oops! DNS poisoning does not support silent mode. The packets will not be forwarded.")
-            sys.exit()
-        
+        else:
+            print("The command was not recognized.")
 
         def stop(process):
-                process.join(5)
-                name = process.name
+            process.join(5)
+            name = process.name
 
-                if process.is_alive():
-                    process.terminate()
-                    print ("[*] Terminated " + name + " Process")
+            if process.is_alive():
+                process.terminate()
+                print ("[*] Terminated " + name + " Process")
 
-                if not process.is_alive():
-                    print ("[*] " + name + " exited successfully")
-                else:
-                    print ("[*] " + name + " failed to exit: use CTRL-Z to kill")
+            if not process.is_alive():
+                print ("[*] " + name + " exited successfully")
+            else:
+                print ("[*] " + name + " failed to exit: use CTRL-Z to kill")
 
     except (KeyboardInterrupt, SystemExit):
-        print("Exiting..")
+        spacing()
+        print("The tool has stopped.")
 
 if __name__ == '__main__':
     main()

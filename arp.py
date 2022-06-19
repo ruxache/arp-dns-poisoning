@@ -47,7 +47,7 @@ class Poison:
                             sendPoison(host1[0], host2[0], host2[1])
                 sleep(self.interval)
         except KeyboardInterrupt:
-            self.restore
+            self.restore()
 
     def restore(self):
         print("Terminating attack, restoring caches")
